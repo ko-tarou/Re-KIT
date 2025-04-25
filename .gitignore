@@ -1,0 +1,28 @@
+# 共通（全体）
+*.log
+*.tmp
+.DS_Store
+node_modules/
+.env
+.env.local
+.env.*.local
+.vscode/
+.idea/
+
+# Docker
+docker-compose.override.yml
+**/tmp
+**/vendor/bundle
+**/log
+
+# フロントエンド（Next.js）
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+
+# バックエンド（Ruby/Sinatra）
+backend/vendor/
+backend/.bundle/
+backend/Gemfile.lock # ※必要なら除外しない
+backend/tmp/
+backend/log/
