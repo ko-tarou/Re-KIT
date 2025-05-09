@@ -1,0 +1,33 @@
+# backend/database.yml
+
+# 開発環境用の設定 (Docker Compose を使う場合)
+development:
+  adapter: postgresql
+  encoding: unicode
+  # Docker Compose の db サービス名と、docker-compose.yml で設定した DB 名/ユーザー/パスワード に合わせる
+  database: database
+  pool: 5
+  username: kotaro
+  password: rekit
+  host: db # docker-compose.yml で定義したデータベースサービスのコンテナ名を指定
+
+# テスト環境用の設定 (必要に応じて)
+test:
+  adapter: postgresql
+  encoding: unicode
+  database: database
+  pool: 5
+  username: kotaro
+  password: rekit
+  host: db
+
+# 本番環境用の設定 (必要に応じて)
+production:
+  adapter: postgresql
+  encoding: unicode
+  database: <%= ENV['DATABASE_NAME'] %> # 環境変数から読み込むのが一般的
+  pool: 5
+  username: <%= ENV['DATABASE_USERNAME'] %>
+  password: <%= ENV['DATABASE_PASSWORD'] %>
+  host: <%= ENV['DATABASE_HOST'] %>
+  port: <%= ENV['DATABASE_PORT'] %>

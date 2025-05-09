@@ -17,3 +17,20 @@ services:
       - "4567:4567"
     volumes:
       - ./backend:/app
+    depends_on:
+      - db
+  db:
+      image: postgres:latest
+      restart: always
+      ports:
+        - "5432:5432"
+      environment:
+        
+        POSTGRES_USER: kotaro
+        POSTGRES_PASSWORD: rekit
+        POSTGRES_DB: database
+
+      volumes:
+        - postgres_data:/var/lib/postgresql/data 
+volumes:
+  postgres_data:
