@@ -1,8 +1,0 @@
-# backend/Rakefile
-
-# sinatra-activerecord が提供する Rake タスクを読み込む
-require 'sinatra/activerecord/rake'
-
-# 環境変数が設定されていない場合のデフォルト設定 (development 環境を想定)
-ENV['RACK_ENV'] ||= 'development'
-
