@@ -1,12 +1,11 @@
-FROM oven/bun:1.2
+# frontend/Dockerfile
+FROM node:18
 
 WORKDIR /app
+COPY ./ ./
 
-COPY package.json bun.lock ./
+RUN npm install
+RUN npm run build
 
-RUN rm -rf node_modules
-RUN bun install
-
-COPY . .
-
-CMD ["bun", "run", "dev"]
+EXPOSE 3000
+CMD ["npm", "start"]
