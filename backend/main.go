@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -42,13 +44,23 @@ type TimeSlot struct {
 }
 
 func main() {
-	db, err := sql.Open("sqlite", "calendar.db")
+	// データディレクトリの作成
+	dataDir := "/app/data"
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		log.Printf("Warning: Could not create data directory: %v", err)
+	}
+
+	// データベースパスの設定
+	dbPath := filepath.Join(dataDir, "calendar.db")
+	log.Printf("Database path: %s", dbPath)
+
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// データベースの初期化（古いテーブルを削除して新しく作成）
+	// データベースの初期化（テーブルが存在しない場合のみ作成）
 	initializeDatabase(db)
 
 	http.HandleFunc("/api/events", handleEvents(db))
@@ -62,27 +74,40 @@ func main() {
 }
 
 func initializeDatabase(db *sql.DB) {
-	log.Println("Initializing database...")
+	log.Println("Checking database tables...")
 
-	// 既存のテーブルを削除（開発環境のため）
-	_, err := db.Exec("DROP TABLE IF EXISTS events")
+	// テーブルの存在確認
+	var tableExists int
+	err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='events'").Scan(&tableExists)
 	if err != nil {
-		log.Printf("Warning: Could not drop events table: %v", err)
+		log.Fatal("Failed to check table existence:", err)
 	}
 
-	_, err = db.Exec("DROP TABLE IF EXISTS categories")
-	if err != nil {
-		log.Printf("Warning: Could not drop categories table: %v", err)
+	if tableExists == 0 {
+		log.Println("Creating new database tables...")
+		createTables(db)
+	} else {
+		log.Println("Database tables already exist, skipping creation")
+		// 必要に応じてテーブル構造の更新
+		updateTableStructure(db)
+	}
+}
+
+func updateTableStructure(db *sql.DB) {
+	// 既存のテーブルに新しいカラムを追加（必要に応じて）
+	alterQueries := []string{
+		"ALTER TABLE events ADD COLUMN description TEXT DEFAULT ''",
+		"ALTER TABLE events ADD COLUMN status TEXT DEFAULT 'confirmed'",
+		"ALTER TABLE events ADD COLUMN color TEXT DEFAULT '#1976d2'",
 	}
 
-	_, err = db.Exec("DROP TABLE IF EXISTS business_hours")
-	if err != nil {
-		log.Printf("Warning: Could not drop business_hours table: %v", err)
+	for _, query := range alterQueries {
+		_, err := db.Exec(query)
+		if err != nil {
+			// カラムが既に存在する場合はエラーになるが、それは正常
+			log.Printf("Note: %v (this is normal if column already exists)", err)
+		}
 	}
-
-	// 新しいテーブルを作成
-	createTables(db)
-	log.Println("Database initialized successfully!")
 }
 
 func createTables(db *sql.DB) {
@@ -147,7 +172,7 @@ func insertDefaultData(db *sql.DB) {
 	}
 
 	for _, cat := range categories {
-		_, err := db.Exec("INSERT INTO categories (id, name, color) VALUES (?, ?, ?)",
+		_, err := db.Exec("INSERT OR IGNORE INTO categories (id, name, color) VALUES (?, ?, ?)",
 			cat.id, cat.name, cat.color)
 		if err != nil {
 			log.Printf("Warning: Could not insert category %s: %v", cat.name, err)
@@ -168,14 +193,14 @@ func insertDefaultData(db *sql.DB) {
 	}
 
 	for _, bh := range businessHours {
-		_, err := db.Exec("INSERT INTO business_hours (day_of_week, start_time, end_time) VALUES (?, ?, ?)",
+		_, err := db.Exec("INSERT OR IGNORE INTO business_hours (day_of_week, start_time, end_time) VALUES (?, ?, ?)",
 			bh.dayOfWeek, bh.startTime, bh.endTime)
 		if err != nil {
 			log.Printf("Warning: Could not insert business hours: %v", err)
 		}
 	}
 
-	log.Println("Default data inserted successfully!")
+	log.Println("Default data initialized successfully!")
 }
 
 func setCORSHeaders(w http.ResponseWriter) {
@@ -363,6 +388,8 @@ func updateEvent(db *sql.DB, w http.ResponseWriter, r *http.Request, id int) {
 		return
 	}
 
+	log.Printf("Updating event ID %d: %+v", id, e)
+
 	// 終日イベントでない場合の時間重複チェック
 	if !e.AllDay {
 		startTime, err := normalizeDateTime(e.StartTime)
@@ -399,21 +426,25 @@ func updateEvent(db *sql.DB, w http.ResponseWriter, r *http.Request, id int) {
 		e.CategoryID, e.Color, e.Status, id)
 	
 	if err != nil {
+		log.Printf("Error updating event: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	e.ID = id
+	log.Printf("Event updated successfully: ID=%d", id)
 	json.NewEncoder(w).Encode(e)
 }
 
 func deleteEvent(db *sql.DB, w http.ResponseWriter, id int) {
 	_, err := db.Exec("DELETE FROM events WHERE id=?", id)
 	if err != nil {
+		log.Printf("Error deleting event: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("Event deleted successfully: ID=%d", id)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -647,12 +678,14 @@ func checkAvailability(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	// 時間フォーマットの正規化
 	normalizedStart, err := normalizeDateTime(startTime)
 	if err != nil {
+		log.Printf("Error normalizing start time: %v", err)
 		http.Error(w, "Invalid start time format", http.StatusBadRequest)
 		return
 	}
 	
 	normalizedEnd, err := normalizeDateTime(endTime)
 	if err != nil {
+		log.Printf("Error normalizing end time: %v", err)
 		http.Error(w, "Invalid end time format", http.StatusBadRequest)
 		return
 	}

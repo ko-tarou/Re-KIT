@@ -30,6 +30,25 @@ export default function Calendar() {
     fetchCategories();
   }, [currentDate, view]);
 
+  // 時間フォーマット関数
+  const formatDateTimeForAPI = (dateTimeLocal) => {
+    if (!dateTimeLocal) return '';
+    
+    // datetime-localの値は "2025-06-16T10:00" 形式
+    // これを "2025-06-16T10:00:00" 形式に変換
+    if (dateTimeLocal.length === 16) {
+      return dateTimeLocal + ':00';
+    }
+    return dateTimeLocal;
+  };
+
+  const formatDateTimeForInput = (isoDateTime) => {
+    if (!isoDateTime) return '';
+    
+    // ISO形式 "2025-06-16T10:00:00" を "2025-06-16T10:00" に変換
+    return isoDateTime.substring(0, 16);
+  };
+
   // API呼び出し関数
   const fetchEvents = async () => {
     try {
@@ -70,11 +89,14 @@ export default function Calendar() {
     }
   };
 
-  const checkAvailability = async (startTime, endTime) => {
+  const checkAvailability = async (startTime, endTime, excludeId = 0) => {
     try {
-      const response = await fetch(
-        `${API_BASE}/availability?start=${startTime}&end=${endTime}`
-      );
+      let url = `${API_BASE}/availability?start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}`;
+      if (excludeId > 0) {
+        url += `&exclude=${excludeId}`;
+      }
+      
+      const response = await fetch(url);
       const data = await response.json();
       return data.available;
     } catch (error) {
@@ -89,10 +111,29 @@ export default function Calendar() {
     setLoading(true);
 
     try {
-      // 時間の重複チェック
+      // 送信用データの準備
+      const eventData = {
+        ...formData,
+        start_time: formData.all_day 
+          ? formData.start_time 
+          : formatDateTimeForAPI(formData.start_time),
+        end_time: formData.all_day 
+          ? formData.end_time 
+          : formatDateTimeForAPI(formData.end_time)
+      };
+
+      console.log('Sending event data:', eventData); // デバッグ用
+
+      // 時間の重複チェック（終日でない場合のみ）
       if (!formData.all_day) {
-        const available = await checkAvailability(formData.start_time, formData.end_time);
-        if (!available && !selectedEvent) {
+        const excludeId = selectedEvent ? selectedEvent.id : 0;
+        const available = await checkAvailability(
+          eventData.start_time, 
+          eventData.end_time, 
+          excludeId
+        );
+        
+        if (!available) {
           alert('選択した時間帯は既に予約されています。');
           setLoading(false);
           return;
@@ -108,7 +149,7 @@ export default function Calendar() {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(eventData)
       });
 
       if (response.ok) {
@@ -225,6 +266,7 @@ export default function Calendar() {
       status: 'confirmed'
     });
     setSelectedEvent(null);
+    setTimeSlots([]);
   };
 
   const openEventModal = (event = null, date = null) => {
@@ -233,8 +275,8 @@ export default function Calendar() {
       setFormData({
         title: event.title,
         description: event.description || '',
-        start_time: event.start_time,
-        end_time: event.end_time,
+        start_time: formatDateTimeForInput(event.start_time),
+        end_time: formatDateTimeForInput(event.end_time),
         all_day: event.all_day,
         category_id: event.category_id,
         status: event.status
@@ -430,6 +472,7 @@ export default function Calendar() {
               events={events}
               onEventClick={openEventModal}
               getCategoryColor={getCategoryColor}
+              styles={styles}
             />
           )}
 
@@ -439,6 +482,7 @@ export default function Calendar() {
               events={events}
               onEventClick={openEventModal}
               getCategoryColor={getCategoryColor}
+              styles={styles}
             />
           )}
         </main>
@@ -594,7 +638,7 @@ export default function Calendar() {
 }
 
 // 週表示コンポーネント
-function WeekView({ currentDate, events, onEventClick, getCategoryColor }) {
+function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles }) {
   const weekStart = new Date(currentDate);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   
@@ -609,6 +653,7 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor }) {
   return (
     <div className={styles.weekView}>
       <div className={styles.weekHeader}>
+        <div></div>
         {weekDays.map((day, index) => (
           <div key={index} className={styles.weekDayHeader}>
             <div className={styles.weekDayName}>
@@ -665,7 +710,7 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor }) {
 }
 
 // 日表示コンポーネント
-function DayView({ currentDate, events, onEventClick, getCategoryColor }) {
+function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }) {
   const hours = Array.from({length: 24}, (_, i) => i);
   const dayEvents = events.filter(event => {
     const eventDate = new Date(event.start_time);

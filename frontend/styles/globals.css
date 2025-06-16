@@ -6,9 +6,11 @@
 }
 
 body {
-  font-family: 'Google Sans', 'Roboto', sans-serif;
+  font-family: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: #ffffff;
   color: #3c4043;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* モーダルのグローバルスタイル */
