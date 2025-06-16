@@ -1,45 +1,178 @@
 import { useEffect, useState } from 'react';
 import styles from './Calendar.module.css';
 
-export default function Home() {
+const API_BASE = 'http://localhost:8000/api';
+
+export default function Calendar() {
+  // 状態管理
   const [events, setEvents] = useState([]);
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
+  const [categories, setCategories] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('month');
   const [showModal, setShowModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [timeSlots, setTimeSlots] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // フォーム状態
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    start_time: '',
+    end_time: '',
+    all_day: false,
+    category_id: 1,
+    status: 'confirmed'
+  });
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+    fetchCategories();
+  }, [currentDate, view]);
 
+  // API呼び出し関数
   const fetchEvents = async () => {
-    const res = await fetch('http://localhost:8000/api/events');
-    const data = await res.json();
-    setEvents(data);
+    try {
+      setLoading(true);
+      const startDate = getViewStartDate();
+      const endDate = getViewEndDate();
+      
+      const response = await fetch(
+        `${API_BASE}/events?start=${startDate}&end=${endDate}`
+      );
+      const data = await response.json();
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Failed to fetch events:', error);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/categories`);
+      const data = await response.json();
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
+
+  const fetchTimeSlots = async (date) => {
+    try {
+      const response = await fetch(`${API_BASE}/timeslots?date=${date}`);
+      const data = await response.json();
+      setTimeSlots(data || []);
+    } catch (error) {
+      console.error('Failed to fetch time slots:', error);
+    }
+  };
+
+  const checkAvailability = async (startTime, endTime) => {
+    try {
+      const response = await fetch(
+        `${API_BASE}/availability?start=${startTime}&end=${endTime}`
+      );
+      const data = await response.json();
+      return data.available;
+    } catch (error) {
+      console.error('Failed to check availability:', error);
+      return false;
+    }
+  };
+
+  // イベント操作
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await fetch('http://localhost:8000/api/events', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ title, date }),
-    });
-    setTitle('');
-    setDate('');
-    setShowModal(false);
-    fetchEvents();
+    setLoading(true);
+
+    try {
+      // 時間の重複チェック
+      if (!formData.all_day) {
+        const available = await checkAvailability(formData.start_time, formData.end_time);
+        if (!available && !selectedEvent) {
+          alert('選択した時間帯は既に予約されています。');
+          setLoading(false);
+          return;
+        }
+      }
+
+      const url = selectedEvent 
+        ? `${API_BASE}/events/${selectedEvent.id}`
+        : `${API_BASE}/events`;
+      
+      const method = selectedEvent ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        resetForm();
+        setShowModal(false);
+        fetchEvents();
+      } else {
+        const error = await response.text();
+        alert(`エラー: ${error}`);
+      }
+    } catch (error) {
+      console.error('Failed to save event:', error);
+      alert('イベントの保存に失敗しました。');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 月表示用のカレンダーグリッド生成
+  const handleDeleteEvent = async (eventId) => {
+    if (!confirm('このイベントを削除しますか？')) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/events/${eventId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setShowModal(false);
+        fetchEvents();
+      }
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+    }
+  };
+
+  // ユーティリティ関数
+  const getViewStartDate = () => {
+    const date = new Date(currentDate);
+    if (view === 'month') {
+      date.setDate(1);
+      date.setDate(date.getDate() - date.getDay());
+    } else if (view === 'week') {
+      date.setDate(date.getDate() - date.getDay());
+    }
+    return date.toISOString().split('T')[0];
+  };
+
+  const getViewEndDate = () => {
+    const date = new Date(currentDate);
+    if (view === 'month') {
+      date.setMonth(date.getMonth() + 1, 0);
+      date.setDate(date.getDate() + (6 - date.getDay()));
+    } else if (view === 'week') {
+      date.setDate(date.getDate() + (6 - date.getDay()));
+    } else {
+      date.setDate(date.getDate() + 1);
+    }
+    return date.toISOString().split('T')[0];
+  };
+
   const generateCalendarDays = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
     
@@ -59,6 +192,13 @@ export default function Home() {
     });
   };
 
+  const formatTime = (dateTimeString) => {
+    return new Date(dateTimeString).toLocaleTimeString('ja-JP', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const isToday = (date) => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
@@ -74,16 +214,69 @@ export default function Home() {
     setCurrentDate(newDate);
   };
 
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      start_time: '',
+      end_time: '',
+      all_day: false,
+      category_id: 1,
+      status: 'confirmed'
+    });
+    setSelectedEvent(null);
+  };
+
+  const openEventModal = (event = null, date = null) => {
+    if (event) {
+      setSelectedEvent(event);
+      setFormData({
+        title: event.title,
+        description: event.description || '',
+        start_time: event.start_time,
+        end_time: event.end_time,
+        all_day: event.all_day,
+        category_id: event.category_id,
+        status: event.status
+      });
+    } else {
+      resetForm();
+      if (date) {
+        const dateStr = date.toISOString().split('T')[0];
+        setFormData(prev => ({
+          ...prev,
+          start_time: `${dateStr}T09:00`,
+          end_time: `${dateStr}T10:00`
+        }));
+        fetchTimeSlots(dateStr);
+      }
+    }
+    setShowModal(true);
+  };
+
+  const getEventsForDate = (date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return events.filter(event => {
+      const eventDate = new Date(event.start_time).toISOString().split('T')[0];
+      return eventDate === dateStr;
+    });
+  };
+
+  const getCategoryColor = (categoryId) => {
+    const category = categories.find(c => c.id === categoryId);
+    return category ? category.color : '#1976d2';
+  };
+
   const calendarDays = generateCalendarDays();
 
   return (
     <div className={styles.calendarContainer}>
-      {/* ヘッダー部分 */}
+      {/* ヘッダー */}
       <header className={styles.calendarHeader}>
         <div className={styles.headerLeft}>
           <button className={styles.menuBtn}>☰</button>
           <div className={styles.calendarIcon}>📅</div>
-          <h1 className={styles.calendarTitle}>カレンダー</h1>
+          <h1 className={styles.calendarTitle}>予約カレンダー</h1>
         </div>
         
         <div className={styles.headerCenter}>
@@ -123,9 +316,9 @@ export default function Home() {
       <div className={styles.calendarBody}>
         {/* サイドバー */}
         <aside className={styles.sidebar}>
-          <button className={styles.createBtn} onClick={() => setShowModal(true)}>
+          <button className={styles.createBtn} onClick={() => openEventModal()}>
             <span className={styles.plusIcon}>+</span>
-            作成
+            予約作成
           </button>
           
           <div className={styles.miniCalendar}>
@@ -137,22 +330,52 @@ export default function Home() {
           </div>
 
           <div className={styles.myCalendars}>
-            <h3>マイカレンダー</h3>
-            <div className={styles.calendarItem}>
-              <input type="checkbox" defaultChecked />
-              <span className={styles.calendarColor} style={{backgroundColor: '#1976d2'}}></span>
-              <span>個人</span>
-            </div>
-            <div className={styles.calendarItem}>
-              <input type="checkbox" defaultChecked />
-              <span className={styles.calendarColor} style={{backgroundColor: '#d32f2f'}}></span>
-              <span>仕事</span>
-            </div>
+            <h3>カテゴリー</h3>
+            {categories.map(category => (
+              <div key={category.id} className={styles.calendarItem}>
+                <input type="checkbox" defaultChecked />
+                <span 
+                  className={styles.calendarColor} 
+                  style={{backgroundColor: category.color}}
+                ></span>
+                <span>{category.name}</span>
+              </div>
+            ))}
           </div>
+
+          {/* 利用可能時間スロット表示 */}
+          {timeSlots.length > 0 && (
+            <div className={styles.timeSlotsList}>
+              <h3>利用可能時間</h3>
+              <div className={styles.slotsContainer}>
+                {timeSlots.map((slot, index) => (
+                  <button
+                    key={index}
+                    className={`${styles.timeSlot} ${!slot.available ? styles.unavailable : ''}`}
+                    disabled={!slot.available}
+                    onClick={() => {
+                      if (slot.available) {
+                        setFormData(prev => ({
+                          ...prev,
+                          start_time: `${slot.date}T${slot.start_time}`,
+                          end_time: `${slot.date}T${slot.end_time}`
+                        }));
+                      }
+                    }}
+                  >
+                    {slot.start_time} - {slot.end_time}
+                    {!slot.available && <span className={styles.unavailableLabel}>予約済</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </aside>
 
         {/* メインカレンダー表示 */}
         <main className={styles.calendarMain}>
+          {loading && <div className={styles.loading}>読み込み中...</div>}
+          
           {view === 'month' && (
             <div className={styles.monthView}>
               {/* 曜日ヘッダー */}
@@ -164,62 +387,69 @@ export default function Home() {
               
               {/* カレンダーグリッド */}
               <div className={styles.calendarGrid}>
-                {calendarDays.map((day, index) => (
-                  <div 
-                    key={index} 
-                    className={`${styles.calendarDay} ${!isCurrentMonth(day) ? styles.otherMonth : ''} ${isToday(day) ? styles.today : ''}`}
-                  >
-                    <div className={styles.dayNumber}>{day.getDate()}</div>
-                    <div className={styles.dayEvents}>
-                      {events
-                        .filter(event => event.date === day.toISOString().split('T')[0])
-                        .map(event => (
-                          <div key={event.id} className={styles.eventItem}>
-                            {event.title}
+                {calendarDays.map((day, index) => {
+                  const dayEvents = getEventsForDate(day);
+                  return (
+                    <div 
+                      key={index} 
+                      className={`${styles.calendarDay} ${!isCurrentMonth(day) ? styles.otherMonth : ''} ${isToday(day) ? styles.today : ''}`}
+                      onClick={() => openEventModal(null, day)}
+                    >
+                      <div className={styles.dayNumber}>{day.getDate()}</div>
+                      <div className={styles.dayEvents}>
+                        {dayEvents.map(event => (
+                          <div 
+                            key={event.id} 
+                            className={styles.eventItem}
+                            style={{backgroundColor: getCategoryColor(event.category_id)}}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEventModal(event);
+                            }}
+                          >
+                            <div className={styles.eventTime}>
+                              {event.all_day ? '終日' : formatTime(event.start_time)}
+                            </div>
+                            <div className={styles.eventTitle}>{event.title}</div>
+                            {event.status === 'pending' && (
+                              <div className={styles.eventStatus}>保留中</div>
+                            )}
                           </div>
-                        ))
-                      }
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
           {view === 'week' && (
-            <div className={styles.weekView}>
-              <div className={styles.timeSlots}>
-                {Array.from({length: 24}, (_, i) => (
-                  <div key={i} className={styles.timeSlot}>
-                    <span className={styles.timeLabel}>{i}:00</span>
-                    <div className={styles.timeContent}></div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <WeekView 
+              currentDate={currentDate}
+              events={events}
+              onEventClick={openEventModal}
+              getCategoryColor={getCategoryColor}
+            />
           )}
 
           {view === 'day' && (
-            <div className={styles.dayView}>
-              <div className={styles.dayTimeSlots}>
-                {Array.from({length: 24}, (_, i) => (
-                  <div key={i} className={styles.dayTimeSlot}>
-                    <span className={styles.timeLabel}>{i}:00</span>
-                    <div className={styles.timeContent}></div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <DayView 
+              currentDate={currentDate}
+              events={events}
+              onEventClick={openEventModal}
+              getCategoryColor={getCategoryColor}
+            />
           )}
         </main>
       </div>
 
-      {/* イベント作成フォーム（モーダル） */}
+      {/* イベント作成・編集モーダル */}
       {showModal && (
         <div className="modal">
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h3>新しいイベント</h3>
+              <h3>{selectedEvent ? 'イベント編集' : '新しい予約'}</h3>
               <button className={styles.closeBtn} onClick={() => setShowModal(false)}>
                 ×
               </button>
@@ -227,39 +457,266 @@ export default function Home() {
             <form onSubmit={handleSubmit} className={styles.eventForm}>
               <input
                 type="text"
-                placeholder="タイトルを追加"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                placeholder="タイトルを入力"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
                 required
                 className={styles.titleInput}
               />
+              
               <div className={styles.formRow}>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                  className={styles.dateInput}
-                />
-                <input
-                  type="time"
-                  className={styles.timeInput}
-                />
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={formData.all_day}
+                    onChange={(e) => setFormData({...formData, all_day: e.target.checked})}
+                  />
+                  終日
+                </label>
               </div>
+
+              {!formData.all_day && (
+                <>
+                  <div className={styles.formRow}>
+                    <div className={styles.inputGroup}>
+                      <label>開始時刻</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.start_time}
+                        onChange={(e) => setFormData({...formData, start_time: e.target.value})}
+                        required
+                        className={styles.dateInput}
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label>終了時刻</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.end_time}
+                        onChange={(e) => setFormData({...formData, end_time: e.target.value})}
+                        required
+                        className={styles.dateInput}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {formData.all_day && (
+                <div className={styles.formRow}>
+                  <div className={styles.inputGroup}>
+                    <label>日付</label>
+                    <input
+                      type="date"
+                      value={formData.start_time.split('T')[0] || ''}
+                      onChange={(e) => {
+                        const date = e.target.value;
+                        setFormData({
+                          ...formData, 
+                          start_time: `${date}T00:00`,
+                          end_time: `${date}T23:59`
+                        });
+                      }}
+                      required
+                      className={styles.dateInput}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.formRow}>
+                <div className={styles.inputGroup}>
+                  <label>カテゴリー</label>
+                  <select
+                    value={formData.category_id}
+                    onChange={(e) => setFormData({...formData, category_id: parseInt(e.target.value)})}
+                    className={styles.selectInput}
+                  >
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.inputGroup}>
+                  <label>ステータス</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    className={styles.selectInput}
+                  >
+                    <option value="confirmed">確定</option>
+                    <option value="pending">保留中</option>
+                    <option value="cancelled">キャンセル</option>
+                  </select>
+                </div>
+              </div>
+
               <textarea
-                placeholder="説明を追加"
+                placeholder="説明・備考"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
                 className={styles.descriptionInput}
-              ></textarea>
+              />
+
               <div className={styles.formActions}>
-                <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>
+                {selectedEvent && (
+                  <button 
+                    type="button" 
+                    className={styles.deleteBtn}
+                    onClick={() => handleDeleteEvent(selectedEvent.id)}
+                  >
+                    削除
+                  </button>
+                )}
+                <button 
+                  type="button" 
+                  className={styles.cancelBtn} 
+                  onClick={() => setShowModal(false)}
+                >
                   キャンセル
                 </button>
-                <button type="submit" className={styles.saveBtn}>保存</button>
+                <button 
+                  type="submit" 
+                  className={styles.saveBtn}
+                  disabled={loading}
+                >
+                  {loading ? '保存中...' : '保存'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// 週表示コンポーネント
+function WeekView({ currentDate, events, onEventClick, getCategoryColor }) {
+  const weekStart = new Date(currentDate);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  
+  const weekDays = Array.from({length: 7}, (_, i) => {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    return day;
+  });
+
+  const hours = Array.from({length: 24}, (_, i) => i);
+
+  return (
+    <div className={styles.weekView}>
+      <div className={styles.weekHeader}>
+        {weekDays.map((day, index) => (
+          <div key={index} className={styles.weekDayHeader}>
+            <div className={styles.weekDayName}>
+              {day.toLocaleDateString('ja-JP', { weekday: 'short' })}
+            </div>
+            <div className={styles.weekDayDate}>{day.getDate()}</div>
+          </div>
+        ))}
+      </div>
+      
+      <div className={styles.weekGrid}>
+        <div className={styles.timeColumn}>
+          {hours.map(hour => (
+            <div key={hour} className={styles.timeSlot}>
+              <span className={styles.timeLabel}>{hour}:00</span>
+            </div>
+          ))}
+        </div>
+        
+        {weekDays.map((day, dayIndex) => (
+          <div key={dayIndex} className={styles.dayColumn}>
+            {hours.map(hour => (
+              <div key={hour} className={styles.hourSlot}>
+                {events
+                  .filter(event => {
+                    const eventDate = new Date(event.start_time);
+                    return eventDate.toDateString() === day.toDateString() &&
+                           eventDate.getHours() === hour;
+                  })
+                  .map(event => (
+                    <div
+                      key={event.id}
+                      className={styles.weekEventItem}
+                      style={{backgroundColor: getCategoryColor(event.category_id)}}
+                      onClick={() => onEventClick(event)}
+                    >
+                      <div className={styles.eventTitle}>{event.title}</div>
+                      <div className={styles.eventTime}>
+                        {new Date(event.start_time).toLocaleTimeString('ja-JP', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 日表示コンポーネント
+function DayView({ currentDate, events, onEventClick, getCategoryColor }) {
+  const hours = Array.from({length: 24}, (_, i) => i);
+  const dayEvents = events.filter(event => {
+    const eventDate = new Date(event.start_time);
+    return eventDate.toDateString() === currentDate.toDateString();
+  });
+
+  return (
+    <div className={styles.dayView}>
+      <div className={styles.dayHeader}>
+        <h3>{currentDate.toLocaleDateString('ja-JP', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })}</h3>
+      </div>
+      
+      <div className={styles.dayTimeSlots}>
+        {hours.map(hour => (
+          <div key={hour} className={styles.dayTimeSlot}>
+            <span className={styles.timeLabel}>{hour}:00</span>
+            <div className={styles.timeContent}>
+              {dayEvents
+                .filter(event => new Date(event.start_time).getHours() === hour)
+                .map(event => (
+                  <div
+                    key={event.id}
+                    className={styles.dayEventItem}
+                    style={{backgroundColor: getCategoryColor(event.category_id)}}
+                    onClick={() => onEventClick(event)}
+                  >
+                    <div className={styles.eventTitle}>{event.title}</div>
+                    <div className={styles.eventTime}>
+                      {new Date(event.start_time).toLocaleTimeString('ja-JP', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })} - {new Date(event.end_time).toLocaleTimeString('ja-JP', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                    {event.description && (
+                      <div className={styles.eventDescription}>{event.description}</div>
+                    )}
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
