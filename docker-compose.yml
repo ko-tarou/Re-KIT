@@ -15,4 +15,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/calendar.db:/app/calendar.db
+      # 改善：ディレクトリ全体をマウントしてデータを永続化
+      - ./data:/app/data
+    environment:
+      - DB_PATH=/app/data/calendar.db

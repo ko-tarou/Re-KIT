@@ -1,0 +1,1333 @@
+/* Googleカレンダー完全再現版 */
+
+/* カレンダーコンテナ */
+.calendarContainer {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+}
+
+/* ヘッダー部分 - Googleカレンダー完全再現 */
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  border-bottom: 1px solid #dadce0;
+  background-color: #fff;
+  height: 64px;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+  z-index: 1000;
+  position: relative;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 0 0 auto;
+}
+
+.menuBtn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #5f6368;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.menuBtn:hover {
+  background-color: rgba(95, 99, 104, 0.1);
+}
+
+.calendarIcon {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+.calendarTitle {
+  font-size: 22px;
+  font-weight: 400;
+  color: #3c4043;
+  letter-spacing: 0;
+}
+
+.headerCenter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  justify-content: flex-start;
+  margin-left: 24px;
+}
+
+.navBtn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #5f6368;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.navBtn:hover {
+  background-color: rgba(95, 99, 104, 0.1);
+}
+
+.todayBtn {
+  padding: 0 16px;
+  height: 36px;
+  border: 1px solid #dadce0;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #3c4043;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.todayBtn:hover {
+  background-color: rgba(66, 133, 244, 0.04);
+  border-color: #4285f4;
+}
+
+.currentMonth {
+  font-size: 22px;
+  font-weight: 400;
+  color: #3c4043;
+  margin-left: 16px;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.viewSwitcher {
+  display: flex;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.viewBtn {
+  padding: 8px 16px;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  color: #3c4043;
+  font-weight: 500;
+  transition: all 0.2s;
+  min-width: 48px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viewBtn:not(:last-child) {
+  border-right: 1px solid #dadce0;
+}
+
+.viewBtn.active {
+  background-color: #4285f4;
+  color: white;
+}
+
+.viewBtn:hover:not(.active) {
+  background-color: rgba(66, 133, 244, 0.04);
+}
+
+.settingsBtn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #5f6368;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  margin-left: 8px;
+}
+
+.settingsBtn:hover {
+  background-color: rgba(95, 99, 104, 0.1);
+}
+
+/* カレンダーボディ */
+.calendarBody {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* サイドバー - Googleカレンダー完全再現 */
+.sidebar {
+  width: 256px;
+  background-color: #ffffff;
+  border-right: 1px solid #dadce0;
+  padding: 8px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.createBtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 8px 0 32px 0;
+  width: 100%;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+  transition: all 0.2s;
+  color: #3c4043;
+}
+
+.createBtn:hover {
+  box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
+  background-color: #fafafb;
+}
+
+.createBtn:active {
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+}
+
+.plusIcon {
+  font-size: 20px;
+  color: #4285f4;
+  font-weight: 400;
+}
+
+.miniCalendar {
+  margin-bottom: 32px;
+}
+
+.miniCalendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #3c4043;
+}
+
+.miniCalendarHeader button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #5f6368;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.miniCalendarHeader button:hover {
+  background-color: rgba(95, 99, 104, 0.1);
+}
+
+.myCalendars {
+  padding: 0 4px;
+}
+
+.myCalendars h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: #3c4043;
+  padding: 0 8px;
+}
+
+.calendarItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  transition: background-color 0.2s;
+}
+
+.calendarItem:hover {
+  background-color: rgba(95, 99, 104, 0.1);
+}
+
+.calendarItem input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4285f4;
+  cursor: pointer;
+}
+
+.calendarColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.calendarItem span:last-child {
+  font-size: 14px;
+  color: #3c4043;
+  flex: 1;
+}
+
+/* メインカレンダー */
+.calendarMain {
+  flex: 1;
+  background-color: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px 32px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  font-size: 14px;
+  color: #3c4043;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e8eaed;
+  border-top: 2px solid #4285f4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 月表示 - Googleカレンダー完全再現 */
+.monthView {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid #dadce0;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.weekday {
+  padding: 16px 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #70757a;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-right: 1px solid #dadce0;
+}
+
+.weekday:last-child {
+  border-right: none;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  flex: 1;
+  gap: 0;
+  background-color: #dadce0;
+}
+
+.calendarDay {
+  background-color: #fff;
+  border-right: 1px solid #dadce0;
+  border-bottom: 1px solid #dadce0;
+  padding: 8px;
+  min-height: 120px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.1s;
+}
+
+.calendarDay:hover {
+  background-color: rgba(66, 133, 244, 0.04);
+}
+
+.calendarDay:last-child {
+  border-right: none;
+}
+
+.calendarDay.otherMonth {
+  color: #9aa0a6;
+  background-color: #fafafa;
+}
+
+.calendarDay.otherMonth:hover {
+  background-color: rgba(154, 160, 166, 0.1);
+}
+
+.calendarDay.today {
+  background-color: #e8f0fe;
+}
+
+.calendarDay.today:hover {
+  background-color: #e8f0fe;
+}
+
+.calendarDay.today .dayNumber {
+  background-color: #4285f4;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.dayNumber {
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 4px;
+  color: #3c4043;
+  line-height: 1;
+}
+
+.calendarDay.otherMonth .dayNumber {
+  color: #9aa0a6;
+}
+
+.dayEvents {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.eventItem {
+  background-color: #4285f4;
+  color: white;
+  padding: 1px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all 0.1s;
+  margin-bottom: 1px;
+  position: relative;
+}
+
+.eventItem:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.eventTime {
+  font-size: 10px;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.eventTitle {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eventStatus {
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.3);
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin-top: 2px;
+  display: inline-block;
+  font-weight: 500;
+}
+
+/* 週表示 - Googleカレンダー完全再現 */
+.weekView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.weekHeader {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  border-bottom: 1px solid #dadce0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.weekHeader > div:first-child {
+  border-right: 1px solid #dadce0;
+}
+
+.weekDayHeader {
+  padding: 16px 8px;
+  text-align: center;
+  border-right: 1px solid #dadce0;
+  background: white;
+}
+
+.weekDayHeader:last-child {
+  border-right: none;
+}
+
+.weekDayName {
+  font-size: 11px;
+  color: #70757a;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+
+.weekDayDate {
+  font-size: 24px;
+  font-weight: 400;
+  color: #3c4043;
+}
+
+.weekGrid {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.timeColumn {
+  border-right: 1px solid #dadce0;
+  background: #fafafa;
+}
+
+.dayColumn {
+  border-right: 1px solid #dadce0;
+}
+
+.dayColumn:last-child {
+  border-right: none;
+}
+
+.timeSlot {
+  height: 48px;
+  border-bottom: 1px solid #f1f3f4;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.hourSlot {
+  height: 48px;
+  border-bottom: 1px solid #f1f3f4;
+  position: relative;
+  padding: 2px;
+}
+
+.timeLabel {
+  font-size: 12px;
+  color: #70757a;
+  padding: 0 8px;
+  text-align: right;
+  width: 100%;
+}
+
+.weekEventItem {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 2px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  z-index: 1;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.weekEventItem:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.weekEventItem .eventTitle {
+  font-weight: 500;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekEventItem .eventTime {
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+/* 日表示 - Googleカレンダー完全再現 */
+.dayView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.dayHeader {
+  padding: 16px 24px;
+  border-bottom: 1px solid #dadce0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dayHeader h3 {
+  font-size: 20px;
+  font-weight: 400;
+  color: #3c4043;
+  margin: 0;
+}
+
+.dayTimeSlots {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.dayTimeSlot {
+  display: flex;
+  min-height: 60px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.dayTimeSlot .timeLabel {
+  width: 80px;
+  font-size: 12px;
+  color: #70757a;
+  padding: 8px 16px 8px 0;
+  text-align: right;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-right: 1px solid #dadce0;
+}
+
+.dayTimeSlot .timeContent {
+  flex: 1;
+  padding: 8px 16px;
+  position: relative;
+}
+
+.dayEventItem {
+  background-color: #4285f4;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+}
+
+.dayEventItem:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.dayEventItem .eventTitle {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.dayEventItem .eventTime {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+
+.dayEventItem .eventDescription {
+  font-size: 12px;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+/* 時間スロット表示 */
+.timeSlotsList {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e8eaed;
+}
+
+.timeSlotsList h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: #3c4043;
+  padding: 0 8px;
+}
+
+.slotsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.timeSlot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  text-align: left;
+  color: #3c4043;
+}
+
+.timeSlot:hover:not(.unavailable) {
+  background-color: #e8f0fe;
+  border-color: #4285f4;
+}
+
+.timeSlot.unavailable {
+  background-color: #f8f9fa;
+  color: #9aa0a6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.unavailableLabel {
+  font-size: 10px;
+  color: #d93025;
+  font-weight: 500;
+}
+
+/* モーダル - Googleカレンダー完全再現 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12), 0 5px 5px -3px rgba(0,0,0,0.2);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.modalHeader h3 {
+  font-size: 18px;
+  font-weight: 500;
+  color: #3c4043;
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #5f6368;
+  padding: 8px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.closeBtn:hover {
+  background-color: rgba(95, 99, 104, 0.1);
+}
+
+.eventForm {
+  padding: 24px;
+}
+
+.titleInput {
+  width: 100%;
+  border: none;
+  font-size: 24px;
+  padding: 8px 0;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e8eaed;
+  outline: none;
+  font-family: 'Google Sans', 'Roboto', sans-serif;
+  color: #3c4043;
+  background: transparent;
+}
+
+.titleInput:focus {
+  border-bottom-color: #4285f4;
+}
+
+.titleInput::placeholder {
+  color: #9aa0a6;
+}
+
+.formRow {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: end;
+}
+
+.inputGroup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.inputGroup label {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #5f6368;
+}
+
+.dateInput, .selectInput {
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  outline: none;
+  font-family: 'Google Sans', 'Roboto', sans-serif;
+  color: #3c4043;
+}
+
+.dateInput:focus, .selectInput:focus {
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  color: #3c4043;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4285f4;
+  cursor: pointer;
+}
+
+.descriptionInput {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 24px;
+  outline: none;
+  font-family: 'Google Sans', 'Roboto', sans-serif;
+  color: #3c4043;
+}
+
+.descriptionInput:focus {
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.descriptionInput::placeholder {
+  color: #9aa0a6;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+
+.deleteBtn {
+  background-color: #ea4335;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: auto;
+  transition: background-color 0.2s;
+}
+
+.deleteBtn:hover {
+  background-color: #d33b2c;
+}
+
+.cancelBtn {
+  background: none;
+  border: 1px solid #dadce0;
+  color: #3c4043;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+  background-color: rgba(60, 64, 67, 0.04);
+}
+
+.saveBtn {
+  background-color: #4285f4;
+  border: none;
+  color: white;
+  padding: 8px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.saveBtn:hover {
+  background-color: #3367d6;
+}
+
+.saveBtn:disabled {
+  background-color: #9aa0a6;
+  cursor: not-allowed;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 200px;
+  }
+  
+  .weekGrid {
+    grid-template-columns: 50px repeat(7, 1fr);
+  }
+  
+  .weekHeader {
+    grid-template-columns: 50px repeat(7, 1fr);
+  }
+  
+  .timeColumn {
+    width: 50px;
+  }
+  
+  .weekDayHeader {
+    padding: 12px 4px;
+  }
+  
+  .weekDayName {
+    font-size: 10px;
+  }
+  
+  .weekDayDate {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+  
+  .calendarHeader {
+    padding: 8px 16px;
+  }
+  
+  .headerLeft .calendarTitle {
+    display: none;
+  }
+  
+  .headerCenter {
+    margin-left: 16px;
+  }
+  
+  .currentMonth {
+    font-size: 18px;
+    margin-left: 8px;
+  }
+  
+  .viewSwitcher .viewBtn {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 36px;
+    height: 32px;
+  }
+  
+  .calendarDay {
+    min-height: 80px;
+    padding: 4px;
+  }
+  
+  .dayNumber {
+    font-size: 12px;
+  }
+  
+  .eventItem {
+    font-size: 11px;
+    padding: 1px 6px;
+  }
+  
+  .modalContent {
+    margin: 16px;
+    max-width: none;
+    width: calc(100% - 32px);
+  }
+  
+  .formRow {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .timeSlotsList {
+    margin-top: 16px;
+    padding-top: 12px;
+  }
+  
+  .slotsContainer {
+    max-height: 150px;
+  }
+  
+  .weekView {
+    font-size: 12px;
+  }
+  
+  .weekEventItem {
+    padding: 2px 4px;
+    font-size: 10px;
+  }
+  
+  .weekEventItem .eventTitle {
+    font-size: 10px;
+  }
+  
+  .weekEventItem .eventTime {
+    font-size: 8px;
+  }
+  
+  .dayTimeSlot {
+    min-height: 50px;
+  }
+  
+  .dayTimeSlot .timeLabel {
+    width: 60px;
+    font-size: 11px;
+    padding: 6px 12px 6px 0;
+  }
+  
+  .dayEventItem {
+    padding: 6px 8px;
+  }
+  
+  .dayEventItem .eventTitle {
+    font-size: 13px;
+  }
+  
+  .dayEventItem .eventTime {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendarHeader {
+    padding: 4px 8px;
+    height: 56px;
+  }
+  
+  .headerLeft {
+    gap: 8px;
+  }
+  
+  .menuBtn, .navBtn, .settingsBtn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+  
+  .todayBtn {
+    padding: 0 12px;
+    height: 32px;
+    font-size: 12px;
+  }
+  
+  .currentMonth {
+    font-size: 16px;
+    margin-left: 4px;
+  }
+  
+  .viewSwitcher .viewBtn {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-width: 32px;
+    height: 28px;
+  }
+  
+  .calendarDay {
+    min-height: 60px;
+    padding: 2px;
+  }
+  
+  .dayNumber {
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+  
+  .eventItem {
+    font-size: 10px;
+    padding: 1px 4px;
+    line-height: 14px;
+  }
+  
+  .weekDayHeader {
+    padding: 8px 2px;
+  }
+  
+  .weekDayName {
+    font-size: 9px;
+  }
+  
+  .weekDayDate {
+    font-size: 14px;
+  }
+  
+  .timeLabel {
+    font-size: 10px;
+  }
+  
+  .modalContent {
+    margin: 8px;
+    width: calc(100% - 16px);
+  }
+  
+  .modalHeader {
+    padding: 16px 16px 12px;
+  }
+  
+  .modalHeader h3 {
+    font-size: 16px;
+  }
+  
+  .eventForm {
+    padding: 16px;
+  }
+  
+  .titleInput {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+  
+  .formActions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .deleteBtn {
+    margin-right: 0;
+    margin-top: 8px;
+  }
+  
+  .formActions > div {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+/* アニメーション効果 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.eventItem,
+.weekEventItem,
+.dayEventItem {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalContent {
+  animation: slideIn 0.3s ease-out;
+}
+
+.timeSlot {
+  animation: fadeIn 0.1s ease-out;
+}
+
+/* フォーカス状態の改善 */
+.timeSlot:focus,
+.eventItem:focus,
+.weekEventItem:focus,
+.dayEventItem:focus,
+.calendarDay:focus {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
+}
+
+/* 印刷用スタイル */
+@media print {
+  .sidebar {
+    display: none;
+  }
+  
+  .calendarHeader {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  .eventItem,
+  .weekEventItem,
+  .dayEventItem {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  .modal {
+    display: none;
+  }
+  
+  .calendarMain {
+    width: 100%;
+  }
+  
+  .viewSwitcher,
+  .settingsBtn {
+    display: none;
+  }
+}
+
+/* ハイコントラスト対応 */
+@media (prefers-contrast: high) {
+  .calendarDay {
+    border-width: 2px;
+  }
+  
+  .eventItem,
+  .weekEventItem,
+  .dayEventItem {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+  }
+  
+  .viewBtn.active {
+    border: 2px solid #ffffff;
+  }
+}
