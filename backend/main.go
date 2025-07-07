@@ -582,9 +582,19 @@ func getAvailableTimeSlots(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	timeSlots := generateTimeSlots(date, startTime, endTime, 30)
 
 	for i := range timeSlots {
-		slotStart := timeSlots[i].Date + "T" + timeSlots[i].StartTime + ":00"
-		slotEnd := timeSlots[i].Date + "T" + timeSlots[i].EndTime + ":00"
-		timeSlots[i].Available = !isTimeSlotOccupied(db, slotStart, slotEnd, 0)
+		// ローカル時間をUTCに変換してチェック
+		localStart := timeSlots[i].Date + "T" + timeSlots[i].StartTime + ":00"
+		localEnd := timeSlots[i].Date + "T" + timeSlots[i].EndTime + ":00"
+		
+		// ローカル時間をUTCに変換
+		loc, _ := time.LoadLocation("Asia/Tokyo")
+		localTimeStart, _ := time.ParseInLocation("2006-01-02T15:04:05", localStart, loc)
+		localTimeEnd, _ := time.ParseInLocation("2006-01-02T15:04:05", localEnd, loc)
+		
+		utcStart := localTimeStart.UTC().Format("2006-01-02T15:04:05")
+		utcEnd := localTimeEnd.UTC().Format("2006-01-02T15:04:05")
+		
+		timeSlots[i].Available = !isTimeSlotOccupied(db, utcStart, utcEnd, 0)
 	}
 
 	json.NewEncoder(w).Encode(timeSlots)
