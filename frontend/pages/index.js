@@ -34,10 +34,11 @@ export default function Calendar() {
   const formatDateTimeForAPI = (dateTimeLocal) => {
     if (!dateTimeLocal) return '';
     
-    // datetime-localの値は "2025-06-16T10:00" 形式
-    // これを "2025-06-16T10:00:00" 形式に変換
+    // datetime-localの値は "2025-06-16T10:00" 形式（ローカル時間）
+    // これをUTC時間に変換して "2025-06-16T01:00:00" 形式で送信
     if (dateTimeLocal.length === 16) {
-      return dateTimeLocal + ':00';
+      const localDate = new Date(dateTimeLocal + ':00');
+      return localDate.toISOString().slice(0, 19);
     }
     return dateTimeLocal;
   };
@@ -45,8 +46,15 @@ export default function Calendar() {
   const formatDateTimeForInput = (isoDateTime) => {
     if (!isoDateTime) return '';
     
-    // ISO形式 "2025-06-16T10:00:00" を "2025-06-16T10:00" に変換
-    return isoDateTime.substring(0, 16);
+    // ISO形式 "2025-06-16T01:00:00"（UTC）をローカル時間 "2025-06-16T10:00" に変換
+    const utcDate = new Date(isoDateTime);
+    const year = utcDate.getFullYear();
+    const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+    const day = String(utcDate.getDate()).padStart(2, '0');
+    const hours = String(utcDate.getHours()).padStart(2, '0');
+    const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   // API呼び出し関数
@@ -234,9 +242,12 @@ export default function Calendar() {
   };
 
   const formatTime = (dateTimeString) => {
-    return new Date(dateTimeString).toLocaleTimeString('ja-JP', {
+    // UTC時間をローカル時間として正しく表示
+    const utcDate = new Date(dateTimeString);
+    return utcDate.toLocaleTimeString('ja-JP', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'Asia/Tokyo'
     });
   };
 
@@ -299,8 +310,11 @@ export default function Calendar() {
   const getEventsForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0];
     return events.filter(event => {
-      const eventDate = new Date(event.start_time).toISOString().split('T')[0];
-      return eventDate === dateStr;
+      // UTC時間をローカル時間に変換してから日付を比較
+      const utcDate = new Date(event.start_time);
+      const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
+      const eventDateStr = localDate.toISOString().split('T')[0];
+      return eventDateStr === dateStr;
     });
   };
 
@@ -397,6 +411,8 @@ export default function Calendar() {
                     disabled={!slot.available}
                     onClick={() => {
                       if (slot.available) {
+                        // 時間スロットはローカル時間として表示されているので、
+                        // そのまま使用（formatDateTimeForAPIでUTCに変換される）
                         setFormData(prev => ({
                           ...prev,
                           start_time: `${slot.date}T${slot.start_time}`,
@@ -679,9 +695,11 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
               <div key={hour} className={styles.hourSlot}>
                 {events
                   .filter(event => {
-                    const eventDate = new Date(event.start_time);
-                    return eventDate.toDateString() === day.toDateString() &&
-                           eventDate.getHours() === hour;
+                    // UTC時間をローカル時間に変換してから比較
+                    const utcDate = new Date(event.start_time);
+                    const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
+                    return localDate.toDateString() === day.toDateString() &&
+                           localDate.getHours() === hour;
                   })
                   .map(event => (
                     <div
@@ -694,7 +712,8 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
                       <div className={styles.eventTime}>
                         {new Date(event.start_time).toLocaleTimeString('ja-JP', {
                           hour: '2-digit',
-                          minute: '2-digit'
+                          minute: '2-digit',
+                          timeZone: 'Asia/Tokyo'
                         })}
                       </div>
                     </div>
@@ -713,8 +732,10 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
 function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }) {
   const hours = Array.from({length: 24}, (_, i) => i);
   const dayEvents = events.filter(event => {
-    const eventDate = new Date(event.start_time);
-    return eventDate.toDateString() === currentDate.toDateString();
+    // UTC時間をローカル時間に変換してから比較
+    const utcDate = new Date(event.start_time);
+    const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
+    return localDate.toDateString() === currentDate.toDateString();
   });
 
   return (
@@ -734,7 +755,12 @@ function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }
             <span className={styles.timeLabel}>{hour}:00</span>
             <div className={styles.timeContent}>
               {dayEvents
-                .filter(event => new Date(event.start_time).getHours() === hour)
+                .filter(event => {
+                  // UTC時間をローカル時間に変換してから時間を比較
+                  const utcDate = new Date(event.start_time);
+                  const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
+                  return localDate.getHours() === hour;
+                })
                 .map(event => (
                   <div
                     key={event.id}
@@ -746,10 +772,12 @@ function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }
                     <div className={styles.eventTime}>
                       {new Date(event.start_time).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        timeZone: 'Asia/Tokyo'
                       })} - {new Date(event.end_time).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        timeZone: 'Asia/Tokyo'
                       })}
                     </div>
                     {event.description && (
