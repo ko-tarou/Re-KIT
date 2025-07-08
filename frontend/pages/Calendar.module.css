@@ -618,8 +618,6 @@
   height: 60px;
   border-bottom: 1px solid #f1f3f4;
   position: relative;
-  padding: 0;
-  transition: background-color 0.2s;
   box-sizing: border-box;
   min-height: 60px;
   flex-shrink: 0;
@@ -639,20 +637,17 @@
 }
 
 .weekEventItem {
-  position: absolute;
-  left: 2px;
-  right: 2px;
-  top: 2px;
-  padding: 4px 6px;
-  border-radius: 4px;
+  background-color: #4285f4;
   color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+  margin: 0;
+  box-sizing: border-box;
+  max-height: 100%;
   overflow: hidden;
-  z-index: 1;
-  font-size: 12px;
-  line-height: 1.3;
-  min-height: 20px;
 }
 
 .weekEventItem:hover {
@@ -661,17 +656,20 @@
 }
 
 .weekEventItem .eventTitle {
+  font-size: 12px;
   font-weight: 500;
   margin-bottom: 2px;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
 }
 
 .weekEventItem .eventTime {
   font-size: 10px;
   opacity: 0.9;
+  margin-bottom: 2px;
+  line-height: 1.2;
 }
 
 /* 日表示 - Googleカレンダー完全再現 */
@@ -706,9 +704,10 @@
 
 .dayTimeSlot {
   display: flex;
-  min-height: 30px;
+  min-height: 60px;
   border-bottom: 1px solid #f1f3f4;
   transition: background-color 0.2s;
+  position: relative;
 }
 
 .dayTimeSlot:hover {
@@ -735,12 +734,15 @@
 .dayEventItem {
   background-color: #4285f4;
   color: white;
-  padding: 8px 12px;
+  padding: 4px 8px;
   border-radius: 4px;
-  margin-bottom: 8px;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   transition: all 0.2s;
+  margin: 0;
+  box-sizing: border-box;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 .dayEventItem:hover {
@@ -749,22 +751,29 @@
 }
 
 .dayEventItem .eventTitle {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  margin-bottom: 4px;
-  line-height: 1.3;
+  margin-bottom: 2px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dayEventItem .eventTime {
-  font-size: 12px;
+  font-size: 10px;
   opacity: 0.9;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  line-height: 1.2;
 }
 
 .dayEventItem .eventDescription {
-  font-size: 12px;
+  font-size: 10px;
   opacity: 0.8;
-  line-height: 1.4;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 時間スロット表示 */
