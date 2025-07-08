@@ -305,7 +305,7 @@ export default function Calendar() {
             end_time: timeInfo.endTime
           }));
         } else {
-          // デフォルトの時間設定
+          // デフォルトの時間設定（9:00-10:00）
           setFormData(prev => ({
             ...prev,
             start_time: `${dateStr}T09:00`,
@@ -383,7 +383,30 @@ export default function Calendar() {
       <div className={styles.calendarBody}>
         {/* サイドバー */}
         <aside className={styles.sidebar}>
-          <button className={styles.createBtn} onClick={() => openEventModal()}>
+          <button className={styles.createBtn} onClick={() => {
+            // 現在の日付と時間を設定
+            const now = new Date();
+            
+            // ローカル時間の文字列形式で開始時間を設定
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const startTime = `${year}-${month}-${date}T${hours}:${minutes}`;
+            
+            // 終了時間を1時間後に設定
+            const endDate = new Date(now);
+            endDate.setHours(endDate.getHours() + 1);
+            const endYear = endDate.getFullYear();
+            const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+            const endDateStr = String(endDate.getDate()).padStart(2, '0');
+            const endHours = String(endDate.getHours()).padStart(2, '0');
+            const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+            const endTime = `${endYear}-${endMonth}-${endDateStr}T${endHours}:${endMinutes}`;
+            
+            openEventModal(null, now, { startTime, endTime });
+          }}>
             <span className={styles.plusIcon}>+</span>
             予約作成
           </button>
@@ -462,7 +485,32 @@ export default function Calendar() {
                     <div 
                       key={index} 
                       className={`${styles.calendarDay} ${!isCurrentMonth(day) ? styles.otherMonth : ''} ${isToday(day) ? styles.today : ''}`}
-                      onClick={() => openEventModal(null, day)}
+                      onClick={() => {
+                        // クリックした日付と現在の時間を設定
+                        const now = new Date();
+                        const clickedDate = new Date(day);
+                        clickedDate.setHours(now.getHours(), now.getMinutes(), 0, 0);
+                        
+                        // ローカル時間の文字列形式で開始時間を設定
+                        const year = clickedDate.getFullYear();
+                        const month = String(clickedDate.getMonth() + 1).padStart(2, '0');
+                        const date = String(clickedDate.getDate()).padStart(2, '0');
+                        const hours = String(clickedDate.getHours()).padStart(2, '0');
+                        const minutes = String(clickedDate.getMinutes()).padStart(2, '0');
+                        const startTime = `${year}-${month}-${date}T${hours}:${minutes}`;
+                        
+                        // 終了時間を1時間後に設定
+                        const endDate = new Date(clickedDate);
+                        endDate.setHours(endDate.getHours() + 1);
+                        const endYear = endDate.getFullYear();
+                        const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+                        const endDateStr = String(endDate.getDate()).padStart(2, '0');
+                        const endHours = String(endDate.getHours()).padStart(2, '0');
+                        const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+                        const endTime = `${endYear}-${endMonth}-${endDateStr}T${endHours}:${endMinutes}`;
+                        
+                        openEventModal(null, clickedDate, { startTime, endTime });
+                      }}
                     >
                       <div className={styles.dayNumber}>{day.getDate()}</div>
                       <div className={styles.dayEvents}>
@@ -682,13 +730,21 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
     const clickedDate = new Date(day);
     clickedDate.setHours(hour, 0, 0, 0);
     
-    // 開始時間を設定（クリックした時間）
-    const startTime = clickedDate.toISOString().slice(0, 16);
+    // ローカル時間の文字列形式で開始時間を設定
+    const year = clickedDate.getFullYear();
+    const month = String(clickedDate.getMonth() + 1).padStart(2, '0');
+    const date = String(clickedDate.getDate()).padStart(2, '0');
+    const hours = String(clickedDate.getHours()).padStart(2, '0');
+    const startTime = `${year}-${month}-${date}T${hours}:00`;
     
     // 終了時間を1時間後に設定
     const endDate = new Date(clickedDate);
     endDate.setHours(endDate.getHours() + 1);
-    const endTime = endDate.toISOString().slice(0, 16);
+    const endYear = endDate.getFullYear();
+    const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+    const endDateStr = String(endDate.getDate()).padStart(2, '0');
+    const endHours = String(endDate.getHours()).padStart(2, '0');
+    const endTime = `${endYear}-${endMonth}-${endDateStr}T${endHours}:00`;
     
     onEventClick(null, clickedDate, { startTime, endTime });
   };
@@ -790,13 +846,23 @@ function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }
     const clickedDate = new Date(currentDate);
     clickedDate.setHours(hour, minute, 0, 0);
     
-    // 開始時間を設定（クリックした時間）
-    const startTime = clickedDate.toISOString().slice(0, 16);
+    // ローカル時間の文字列形式で開始時間を設定
+    const year = clickedDate.getFullYear();
+    const month = String(clickedDate.getMonth() + 1).padStart(2, '0');
+    const date = String(clickedDate.getDate()).padStart(2, '0');
+    const hours = String(clickedDate.getHours()).padStart(2, '0');
+    const minutes = String(clickedDate.getMinutes()).padStart(2, '0');
+    const startTime = `${year}-${month}-${date}T${hours}:${minutes}`;
     
     // 終了時間を30分後に設定
     const endDate = new Date(clickedDate);
     endDate.setMinutes(endDate.getMinutes() + 30);
-    const endTime = endDate.toISOString().slice(0, 16);
+    const endYear = endDate.getFullYear();
+    const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+    const endDateStr = String(endDate.getDate()).padStart(2, '0');
+    const endHours = String(endDate.getHours()).padStart(2, '0');
+    const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+    const endTime = `${endYear}-${endMonth}-${endDateStr}T${endHours}:${endMinutes}`;
     
     onEventClick(null, clickedDate, { startTime, endTime });
   };
