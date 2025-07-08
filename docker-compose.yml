@@ -6,6 +6,10 @@ services:
       context: ./frontend
     ports:
       - "3000:3000"
+    volumes:
+      # ソースコードをマウントしてホットリロードを有効化
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - backend
 

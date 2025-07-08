@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import styles from './Calendar.module.css';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -28,7 +28,7 @@ export default function Calendar() {
   useEffect(() => {
     fetchEvents();
     fetchCategories();
-  }, [currentDate, view]);
+  }, [currentDate]); // viewを依存関係から削除
 
   // 時間フォーマット関数
   const formatDateTimeForAPI = (dateTimeLocal) => {
@@ -280,7 +280,7 @@ export default function Calendar() {
     setTimeSlots([]);
   };
 
-  const openEventModal = (event = null, date = null) => {
+  const openEventModal = (event = null, date = null, timeInfo = null) => {
     if (event) {
       setSelectedEvent(event);
       setFormData({
@@ -296,11 +296,22 @@ export default function Calendar() {
       resetForm();
       if (date) {
         const dateStr = date.toISOString().split('T')[0];
-        setFormData(prev => ({
-          ...prev,
-          start_time: `${dateStr}T09:00`,
-          end_time: `${dateStr}T10:00`
-        }));
+        
+        // 時間スロットから時間情報が渡された場合はそれを使用
+        if (timeInfo && timeInfo.startTime && timeInfo.endTime) {
+          setFormData(prev => ({
+            ...prev,
+            start_time: timeInfo.startTime,
+            end_time: timeInfo.endTime
+          }));
+        } else {
+          // デフォルトの時間設定（9:00-10:00）
+          setFormData(prev => ({
+            ...prev,
+            start_time: `${dateStr}T09:00`,
+            end_time: `${dateStr}T10:00`
+          }));
+        }
         fetchTimeSlots(dateStr);
       }
     }
@@ -308,12 +319,20 @@ export default function Calendar() {
   };
 
   const getEventsForDate = (date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    // ローカル時間で日付文字列を作成
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
     return events.filter(event => {
-      // UTC時間をローカル時間に変換してから日付を比較
-      const utcDate = new Date(event.start_time);
-      const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-      const eventDateStr = localDate.toISOString().split('T')[0];
+      // イベントの開始時間をローカル時間で取得
+      const eventDate = new Date(event.start_time);
+      const eventYear = eventDate.getFullYear();
+      const eventMonth = String(eventDate.getMonth() + 1).padStart(2, '0');
+      const eventDay = String(eventDate.getDate()).padStart(2, '0');
+      const eventDateStr = `${eventYear}-${eventMonth}-${eventDay}`;
+      
       return eventDateStr === dateStr;
     });
   };
@@ -372,7 +391,30 @@ export default function Calendar() {
       <div className={styles.calendarBody}>
         {/* サイドバー */}
         <aside className={styles.sidebar}>
-          <button className={styles.createBtn} onClick={() => openEventModal()}>
+          <button className={styles.createBtn} onClick={() => {
+            // 現在の日付と時間を設定
+            const now = new Date();
+            
+            // ローカル時間の文字列形式で開始時間を設定
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const startTime = `${year}-${month}-${date}T${hours}:${minutes}`;
+            
+            // 終了時間を1時間後に設定
+            const endDate = new Date(now);
+            endDate.setHours(endDate.getHours() + 1);
+            const endYear = endDate.getFullYear();
+            const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+            const endDateStr = String(endDate.getDate()).padStart(2, '0');
+            const endHours = String(endDate.getHours()).padStart(2, '0');
+            const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+            const endTime = `${endYear}-${endMonth}-${endDateStr}T${endHours}:${endMinutes}`;
+            
+            openEventModal(null, now, { startTime, endTime });
+          }}>
             <span className={styles.plusIcon}>+</span>
             予約作成
           </button>
@@ -451,7 +493,32 @@ export default function Calendar() {
                     <div 
                       key={index} 
                       className={`${styles.calendarDay} ${!isCurrentMonth(day) ? styles.otherMonth : ''} ${isToday(day) ? styles.today : ''}`}
-                      onClick={() => openEventModal(null, day)}
+                      onClick={() => {
+                        // クリックした日付と現在の時間を設定
+                        const now = new Date();
+                        const clickedDate = new Date(day);
+                        clickedDate.setHours(now.getHours(), now.getMinutes(), 0, 0);
+                        
+                        // ローカル時間の文字列形式で開始時間を設定
+                        const year = clickedDate.getFullYear();
+                        const month = String(clickedDate.getMonth() + 1).padStart(2, '0');
+                        const date = String(clickedDate.getDate()).padStart(2, '0');
+                        const hours = String(clickedDate.getHours()).padStart(2, '0');
+                        const minutes = String(clickedDate.getMinutes()).padStart(2, '0');
+                        const startTime = `${year}-${month}-${date}T${hours}:${minutes}`;
+                        
+                        // 終了時間を1時間後に設定
+                        const endDate = new Date(clickedDate);
+                        endDate.setHours(endDate.getHours() + 1);
+                        const endYear = endDate.getFullYear();
+                        const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+                        const endDateStr = String(endDate.getDate()).padStart(2, '0');
+                        const endHours = String(endDate.getHours()).padStart(2, '0');
+                        const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+                        const endTime = `${endYear}-${endMonth}-${endDateStr}T${endHours}:${endMinutes}`;
+                        
+                        openEventModal(null, clickedDate, { startTime, endTime });
+                      }}
                     >
                       <div className={styles.dayNumber}>{day.getDate()}</div>
                       <div className={styles.dayEvents}>
@@ -664,20 +731,47 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
     return day;
   });
 
+  // 1時間間隔の時間スロットを生成（Googleカレンダー風）
   const hours = Array.from({length: 24}, (_, i) => i);
+
+  const handleTimeSlotClick = (day, hour) => {
+    const clickedDate = new Date(day);
+    clickedDate.setHours(hour, 0, 0, 0);
+    
+    // ローカル時間の文字列形式で開始時間を設定
+    const year = clickedDate.getFullYear();
+    const month = String(clickedDate.getMonth() + 1).padStart(2, '0');
+    const date = String(clickedDate.getDate()).padStart(2, '0');
+    const hours = String(clickedDate.getHours()).padStart(2, '0');
+    const startTime = `${year}-${month}-${date}T${hours}:00`;
+    
+    // 終了時間を1時間後に設定
+    const endDate = new Date(clickedDate);
+    endDate.setHours(endDate.getHours() + 1);
+    const endYear = endDate.getFullYear();
+    const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+    const endDateStr = String(endDate.getDate()).padStart(2, '0');
+    const endHours = String(endDate.getHours()).padStart(2, '0');
+    const endTime = `${endYear}-${endMonth}-${endDateStr}T${endHours}:00`;
+    
+    onEventClick(null, clickedDate, { startTime, endTime });
+  };
 
   return (
     <div className={styles.weekView}>
       <div className={styles.weekHeader}>
-        <div></div>
-        {weekDays.map((day, index) => (
-          <div key={index} className={styles.weekDayHeader}>
-            <div className={styles.weekDayName}>
-              {day.toLocaleDateString('ja-JP', { weekday: 'short' })}
+        <div className={styles.timeColumnHeader}></div>
+        {weekDays.map((day, index) => {
+          const isToday = day.toDateString() === new Date().toDateString();
+          return (
+            <div key={index} className={`${styles.weekDayHeader} ${isToday ? styles.today : ''}`}>
+              <div className={styles.weekDayName}>
+                {day.toLocaleDateString('ja-JP', { weekday: 'short' })}
+              </div>
+              <div className={styles.weekDayDate}>{day.getDate()}</div>
             </div>
-            <div className={styles.weekDayDate}>{day.getDate()}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       <div className={styles.weekGrid}>
@@ -692,32 +786,80 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
         {weekDays.map((day, dayIndex) => (
           <div key={dayIndex} className={styles.dayColumn}>
             {hours.map(hour => (
-              <div key={hour} className={styles.hourSlot}>
+              <div 
+                key={hour} 
+                className={styles.hourSlot}
+                onClick={() => handleTimeSlotClick(day, hour)}
+                style={{ cursor: 'pointer' }}
+              >
                 {events
                   .filter(event => {
-                    // UTC時間をローカル時間に変換してから比較
-                    const utcDate = new Date(event.start_time);
-                    const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-                    return localDate.toDateString() === day.toDateString() &&
-                           localDate.getHours() === hour;
+                    // このスロットの開始時刻と終了時刻
+                    const slotStart = new Date(day);
+                    slotStart.setHours(hour, 0, 0, 0);
+                    const slotEnd = new Date(slotStart);
+                    slotEnd.setHours(slotEnd.getHours() + 1);
+
+                    // イベントがこのスロットにかかっているか
+                    const eventStart = new Date(event.start_time);
+                    const eventEnd = new Date(event.end_time);
+
+                    // 日付とスロットの時間帯をチェック
+                    return eventStart.toDateString() === day.toDateString() &&
+                           eventStart < slotEnd && eventEnd > slotStart;
                   })
-                  .map(event => (
-                    <div
-                      key={event.id}
-                      className={styles.weekEventItem}
-                      style={{backgroundColor: getCategoryColor(event.category_id)}}
-                      onClick={() => onEventClick(event)}
-                    >
-                      <div className={styles.eventTitle}>{event.title}</div>
-                      <div className={styles.eventTime}>
-                        {new Date(event.start_time).toLocaleTimeString('ja-JP', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          timeZone: 'Asia/Tokyo'
-                        })}
+                  .map(event => {
+                    const eventStart = new Date(event.start_time);
+                    const eventEnd = new Date(event.end_time);
+                    
+                    // スロット内での表示位置を計算
+                    const slotStart = new Date(day);
+                    slotStart.setHours(hour, 0, 0, 0);
+                    
+                    // イベントがスロット内で開始する位置（分単位）
+                    const offsetMinutes = Math.max(0, (eventStart - slotStart) / (1000 * 60));
+                    const marginTop = Math.min(50, (offsetMinutes / 60) * 60); // 最大50px
+                    
+                    // イベントの表示高さ（スロット内に収める）
+                    const durationMinutes = (eventEnd - eventStart) / (1000 * 60);
+                    const maxHeight = 60 - marginTop; // スロットの残り高さ
+                    const height = Math.min(maxHeight, Math.max(20, (durationMinutes / 60) * 60));
+
+                    return (
+                      <div
+                        key={event.id}
+                        className={styles.weekEventItem}
+                        style={{
+                          backgroundColor: getCategoryColor(event.category_id),
+                          height: `${height}px`,
+                          marginTop: `${marginTop}px`,
+                          position: 'absolute',
+                          left: '2px',
+                          right: '2px',
+                          zIndex: 1,
+                          overflow: 'hidden',
+                        }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          onEventClick(event);
+                        }}
+                      >
+                        <div className={styles.eventTitle}>{event.title}</div>
+                        <div className={styles.eventTime}>
+                          {new Date(event.start_time).toLocaleTimeString('ja-JP', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })} - {new Date(event.end_time).toLocaleTimeString('ja-JP', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                        {event.description && (
+                          <div className={styles.eventDescription}>{event.description}</div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 }
               </div>
             ))}
@@ -729,14 +871,42 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
 }
 
 // 日表示コンポーネント
-function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }) {
+const DayView = ({ currentDate, events, onEventClick, getCategoryColor, styles }) => {
+  // 1時間間隔の時間スロットを生成（Googleカレンダー風）
   const hours = Array.from({length: 24}, (_, i) => i);
-  const dayEvents = events.filter(event => {
-    // UTC時間をローカル時間に変換してから比較
-    const utcDate = new Date(event.start_time);
-    const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-    return localDate.toDateString() === currentDate.toDateString();
-  });
+
+  const handleTimeSlotClick = (hour) => {
+    const clickedDate = new Date(currentDate);
+    clickedDate.setHours(hour, 0, 0, 0);
+    
+    // ローカル時間の文字列形式で開始時間を設定
+    const year = clickedDate.getFullYear();
+    const month = String(clickedDate.getMonth() + 1).padStart(2, '0');
+    const date = String(clickedDate.getDate()).padStart(2, '0');
+    const hours = String(clickedDate.getHours()).padStart(2, '0');
+    const startTime = `${year}-${month}-${date}T${hours}:00`;
+    
+    // 終了時間を1時間後に設定
+    const endDate = new Date(clickedDate);
+    endDate.setHours(endDate.getHours() + 1);
+    const endYear = endDate.getFullYear();
+    const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+    const endDateStr = String(endDate.getDate()).padStart(2, '0');
+    const endHours = String(endDate.getHours()).padStart(2, '0');
+    const endTime = `${endYear}-${endMonth}-${endDateStr}T${endHours}:00`;
+    
+    onEventClick(null, clickedDate, { startTime, endTime });
+  };
+
+  // イベントを日付でフィルタリング（メモ化）
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      const eventStart = new Date(event.start_time);
+      const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+      const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      return eventStartDate.getTime() === currentDateOnly.getTime();
+    });
+  }, [events, currentDate]);
 
   return (
     <div className={styles.dayView}>
@@ -750,46 +920,91 @@ function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }
       </div>
       
       <div className={styles.dayTimeSlots}>
-        {hours.map(hour => (
-          <div key={hour} className={styles.dayTimeSlot}>
-            <span className={styles.timeLabel}>{hour}:00</span>
-            <div className={styles.timeContent}>
-              {dayEvents
-                .filter(event => {
-                  // UTC時間をローカル時間に変換してから時間を比較
-                  const utcDate = new Date(event.start_time);
-                  const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-                  return localDate.getHours() === hour;
-                })
-                .map(event => (
-                  <div
-                    key={event.id}
-                    className={styles.dayEventItem}
-                    style={{backgroundColor: getCategoryColor(event.category_id)}}
-                    onClick={() => onEventClick(event)}
-                  >
-                    <div className={styles.eventTitle}>{event.title}</div>
-                    <div className={styles.eventTime}>
-                      {new Date(event.start_time).toLocaleTimeString('ja-JP', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'Asia/Tokyo'
-                      })} - {new Date(event.end_time).toLocaleTimeString('ja-JP', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'Asia/Tokyo'
-                      })}
+        {hours.map((hour, index) => {
+          // この時間帯にマッチするイベントを事前にフィルタリング
+          const matchingEvents = filteredEvents.filter(event => {
+            const eventStart = new Date(event.start_time);
+            const eventEnd = new Date(event.end_time);
+            
+            // この時間帯にイベントがかかっているかチェック
+            const slotStart = new Date(currentDate);
+            slotStart.setHours(hour, 0, 0, 0);
+            const slotEnd = new Date(slotStart);
+            slotEnd.setHours(slotEnd.getHours() + 1);
+            
+            const overlaps = eventStart < slotEnd && eventEnd > slotStart;
+            
+            return overlaps;
+          });
+
+          return (
+            <div 
+              key={index} 
+              className={styles.dayTimeSlot}
+              onClick={() => handleTimeSlotClick(hour)}
+              style={{ cursor: 'pointer' }}
+            >
+              <span className={styles.timeLabel}>
+                {hour}:00
+              </span>
+              <div className={styles.timeContent}>
+                {matchingEvents.map(event => {
+                  const eventStart = new Date(event.start_time);
+                  const eventEnd = new Date(event.end_time);
+                  
+                  // スロット内での表示位置を計算
+                  const slotStart = new Date(currentDate);
+                  slotStart.setHours(hour, 0, 0, 0);
+                  
+                  // イベントがスロット内で開始する位置（分単位）
+                  const offsetMinutes = Math.max(0, (eventStart - slotStart) / (1000 * 60));
+                  const marginTop = Math.min(50, (offsetMinutes / 60) * 60); // 最大50px
+                  
+                  // イベントの表示高さ（スロット内に収める）
+                  const durationMinutes = (eventEnd - eventStart) / (1000 * 60);
+                  const maxHeight = 60 - marginTop; // スロットの残り高さ
+                  const height = Math.min(maxHeight, Math.max(20, (durationMinutes / 60) * 60));
+
+                  return (
+                    <div
+                      key={event.id}
+                      className={styles.dayEventItem}
+                      style={{
+                        backgroundColor: getCategoryColor(event.category_id),
+                        height: `${height}px`,
+                        marginTop: `${marginTop}px`,
+                        position: 'absolute',
+                        left: '2px',
+                        right: '2px',
+                        zIndex: 1,
+                        overflow: 'hidden',
+                      }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        onEventClick(event);
+                      }}
+                    >
+                      <div className={styles.eventTitle}>{event.title}</div>
+                      <div className={styles.eventTime}>
+                        {new Date(event.start_time).toLocaleTimeString('ja-JP', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })} - {new Date(event.end_time).toLocaleTimeString('ja-JP', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                      {event.description && (
+                        <div className={styles.eventDescription}>{event.description}</div>
+                      )}
                     </div>
-                    {event.description && (
-                      <div className={styles.eventDescription}>{event.description}</div>
-                    )}
-                  </div>
-                ))
-              }
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
-}
+};
