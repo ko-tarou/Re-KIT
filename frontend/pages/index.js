@@ -321,10 +321,10 @@ export default function Calendar() {
   const getEventsForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0];
     return events.filter(event => {
-      // UTC時間をローカル時間に変換してから日付を比較
-      const utcDate = new Date(event.start_time);
-      const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-      const eventDateStr = localDate.toISOString().split('T')[0];
+      // イベントの開始時間をローカル時間で取得
+      const eventDate = new Date(event.start_time);
+      const eventLocalDate = new Date(eventDate);
+      const eventDateStr = eventLocalDate.toISOString().split('T')[0];
       return eventDateStr === dateStr;
     });
   };
@@ -730,11 +730,13 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
               >
                 {events
                   .filter(event => {
-                    // UTC時間をローカル時間に変換してから比較
-                    const utcDate = new Date(event.start_time);
-                    const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-                    return localDate.toDateString() === day.toDateString() &&
-                           localDate.getHours() === hour;
+                    // イベントの開始時間をローカル時間で取得
+                    const eventDate = new Date(event.start_time);
+                    const eventLocalDate = new Date(eventDate);
+                    
+                    // 日付と時間を比較
+                    return eventLocalDate.toDateString() === day.toDateString() &&
+                           eventLocalDate.getHours() === hour;
                   })
                   .map(event => (
                     <div
@@ -750,8 +752,7 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
                       <div className={styles.eventTime}>
                         {new Date(event.start_time).toLocaleTimeString('ja-JP', {
                           hour: '2-digit',
-                          minute: '2-digit',
-                          timeZone: 'Asia/Tokyo'
+                          minute: '2-digit'
                         })}
                       </div>
                     </div>
@@ -777,10 +778,12 @@ function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }
   }
   
   const dayEvents = events.filter(event => {
-    // UTC時間をローカル時間に変換してから比較
-    const utcDate = new Date(event.start_time);
-    const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-    return localDate.toDateString() === currentDate.toDateString();
+    // イベントの開始時間をローカル時間で取得
+    const eventDate = new Date(event.start_time);
+    const eventLocalDate = new Date(eventDate);
+    
+    // 日付を比較
+    return eventLocalDate.toDateString() === currentDate.toDateString();
   });
 
   const handleTimeSlotClick = (hour, minute) => {
@@ -823,12 +826,14 @@ function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }
             <div className={styles.timeContent}>
               {dayEvents
                 .filter(event => {
-                  // UTC時間をローカル時間に変換してから時間を比較
-                  const utcDate = new Date(event.start_time);
-                  const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-                  return localDate.getHours() === slot.hour &&
-                         localDate.getMinutes() >= slot.minute &&
-                         localDate.getMinutes() < slot.minute + 30;
+                  // イベントの開始時間をローカル時間で取得
+                  const eventDate = new Date(event.start_time);
+                  const eventLocalDate = new Date(eventDate);
+                  
+                  // 時間を比較
+                  return eventLocalDate.getHours() === slot.hour &&
+                         eventLocalDate.getMinutes() >= slot.minute &&
+                         eventLocalDate.getMinutes() < slot.minute + 30;
                 })
                 .map(event => (
                   <div
@@ -844,12 +849,10 @@ function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }
                     <div className={styles.eventTime}>
                       {new Date(event.start_time).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'Asia/Tokyo'
+                        minute: '2-digit'
                       })} - {new Date(event.end_time).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'Asia/Tokyo'
+                        minute: '2-digit'
                       })}
                     </div>
                     {event.description && (
