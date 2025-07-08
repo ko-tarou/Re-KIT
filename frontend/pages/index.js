@@ -280,7 +280,7 @@ export default function Calendar() {
     setTimeSlots([]);
   };
 
-  const openEventModal = (event = null, date = null) => {
+  const openEventModal = (event = null, date = null, timeInfo = null) => {
     if (event) {
       setSelectedEvent(event);
       setFormData({
@@ -296,11 +296,22 @@ export default function Calendar() {
       resetForm();
       if (date) {
         const dateStr = date.toISOString().split('T')[0];
-        setFormData(prev => ({
-          ...prev,
-          start_time: `${dateStr}T09:00`,
-          end_time: `${dateStr}T10:00`
-        }));
+        
+        // 時間スロットから時間情報が渡された場合はそれを使用
+        if (timeInfo && timeInfo.startTime && timeInfo.endTime) {
+          setFormData(prev => ({
+            ...prev,
+            start_time: timeInfo.startTime,
+            end_time: timeInfo.endTime
+          }));
+        } else {
+          // デフォルトの時間設定
+          setFormData(prev => ({
+            ...prev,
+            start_time: `${dateStr}T09:00`,
+            end_time: `${dateStr}T10:00`
+          }));
+        }
         fetchTimeSlots(dateStr);
       }
     }
@@ -664,20 +675,39 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
     return day;
   });
 
+  // 1時間間隔の時間スロットを生成（Googleカレンダー風）
   const hours = Array.from({length: 24}, (_, i) => i);
+
+  const handleTimeSlotClick = (day, hour) => {
+    const clickedDate = new Date(day);
+    clickedDate.setHours(hour, 0, 0, 0);
+    
+    // 開始時間を設定（クリックした時間）
+    const startTime = clickedDate.toISOString().slice(0, 16);
+    
+    // 終了時間を1時間後に設定
+    const endDate = new Date(clickedDate);
+    endDate.setHours(endDate.getHours() + 1);
+    const endTime = endDate.toISOString().slice(0, 16);
+    
+    onEventClick(null, clickedDate, { startTime, endTime });
+  };
 
   return (
     <div className={styles.weekView}>
       <div className={styles.weekHeader}>
-        <div></div>
-        {weekDays.map((day, index) => (
-          <div key={index} className={styles.weekDayHeader}>
-            <div className={styles.weekDayName}>
-              {day.toLocaleDateString('ja-JP', { weekday: 'short' })}
+        <div className={styles.timeColumnHeader}></div>
+        {weekDays.map((day, index) => {
+          const isToday = day.toDateString() === new Date().toDateString();
+          return (
+            <div key={index} className={`${styles.weekDayHeader} ${isToday ? styles.today : ''}`}>
+              <div className={styles.weekDayName}>
+                {day.toLocaleDateString('ja-JP', { weekday: 'short' })}
+              </div>
+              <div className={styles.weekDayDate}>{day.getDate()}</div>
             </div>
-            <div className={styles.weekDayDate}>{day.getDate()}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       <div className={styles.weekGrid}>
@@ -692,7 +722,12 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
         {weekDays.map((day, dayIndex) => (
           <div key={dayIndex} className={styles.dayColumn}>
             {hours.map(hour => (
-              <div key={hour} className={styles.hourSlot}>
+              <div 
+                key={hour} 
+                className={styles.hourSlot}
+                onClick={() => handleTimeSlotClick(day, hour)}
+                style={{ cursor: 'pointer' }}
+              >
                 {events
                   .filter(event => {
                     // UTC時間をローカル時間に変換してから比較
@@ -706,7 +741,10 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
                       key={event.id}
                       className={styles.weekEventItem}
                       style={{backgroundColor: getCategoryColor(event.category_id)}}
-                      onClick={() => onEventClick(event)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEventClick(event);
+                      }}
                     >
                       <div className={styles.eventTitle}>{event.title}</div>
                       <div className={styles.eventTime}>
@@ -730,13 +768,35 @@ function WeekView({ currentDate, events, onEventClick, getCategoryColor, styles 
 
 // 日表示コンポーネント
 function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }) {
-  const hours = Array.from({length: 24}, (_, i) => i);
+  // 30分間隔の時間スロットを生成
+  const timeSlots = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      timeSlots.push({ hour, minute });
+    }
+  }
+  
   const dayEvents = events.filter(event => {
     // UTC時間をローカル時間に変換してから比較
     const utcDate = new Date(event.start_time);
     const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
     return localDate.toDateString() === currentDate.toDateString();
   });
+
+  const handleTimeSlotClick = (hour, minute) => {
+    const clickedDate = new Date(currentDate);
+    clickedDate.setHours(hour, minute, 0, 0);
+    
+    // 開始時間を設定（クリックした時間）
+    const startTime = clickedDate.toISOString().slice(0, 16);
+    
+    // 終了時間を30分後に設定
+    const endDate = new Date(clickedDate);
+    endDate.setMinutes(endDate.getMinutes() + 30);
+    const endTime = endDate.toISOString().slice(0, 16);
+    
+    onEventClick(null, clickedDate, { startTime, endTime });
+  };
 
   return (
     <div className={styles.dayView}>
@@ -750,23 +810,35 @@ function DayView({ currentDate, events, onEventClick, getCategoryColor, styles }
       </div>
       
       <div className={styles.dayTimeSlots}>
-        {hours.map(hour => (
-          <div key={hour} className={styles.dayTimeSlot}>
-            <span className={styles.timeLabel}>{hour}:00</span>
+        {timeSlots.map((slot, index) => (
+          <div 
+            key={index} 
+            className={styles.dayTimeSlot}
+            onClick={() => handleTimeSlotClick(slot.hour, slot.minute)}
+            style={{ cursor: 'pointer' }}
+          >
+            <span className={styles.timeLabel}>
+              {slot.minute === 0 ? `${slot.hour}:00` : ''}
+            </span>
             <div className={styles.timeContent}>
               {dayEvents
                 .filter(event => {
                   // UTC時間をローカル時間に変換してから時間を比較
                   const utcDate = new Date(event.start_time);
                   const localDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000)); // JSTに変換
-                  return localDate.getHours() === hour;
+                  return localDate.getHours() === slot.hour &&
+                         localDate.getMinutes() >= slot.minute &&
+                         localDate.getMinutes() < slot.minute + 30;
                 })
                 .map(event => (
                   <div
                     key={event.id}
                     className={styles.dayEventItem}
                     style={{backgroundColor: getCategoryColor(event.category_id)}}
-                    onClick={() => onEventClick(event)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick(event);
+                    }}
                   >
                     <div className={styles.eventTitle}>{event.title}</div>
                     <div className={styles.eventTime}>

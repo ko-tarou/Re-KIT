@@ -2,10 +2,12 @@
 FROM node:18
 
 WORKDIR /app
-COPY ./ ./
+COPY package*.json ./
 
 RUN npm install
-RUN npm run build
+
+# 開発用のため、buildは行わない
+# RUN npm run build
 
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
