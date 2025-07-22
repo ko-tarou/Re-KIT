@@ -1,10 +1,13 @@
 module rekit
 
-go 1.21
+go 1.23.0
+
+toolchain go1.24.1
 
 require modernc.org/sqlite v1.17.0
 
 require (
+	github.com/aws/aws-lambda-go v1.49.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
