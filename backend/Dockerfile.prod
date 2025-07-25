@@ -1,0 +1,32 @@
+# ビルドステージ
+FROM golang:1.23 AS builder
+
+WORKDIR /app
+
+# 依存関係のコピーとダウンロード
+COPY go.mod go.sum ./
+RUN go mod download
+
+# ソースコードのコピー
+COPY . .
+
+# バイナリのビルド
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o main .
+
+# 実行ステージ
+FROM alpine:latest
+
+# SQLiteの依存関係をインストール
+RUN apk --no-cache add ca-certificates sqlite
+
+WORKDIR /root/
+
+# ビルドしたバイナリをコピー
+COPY --from=builder /app/main .
+
+# データディレクトリの作成
+RUN mkdir -p /root/data
+
+EXPOSE 8000
+
+CMD ["./main"] 

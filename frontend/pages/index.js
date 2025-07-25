@@ -260,9 +260,22 @@ export default function Calendar() {
     return date.getMonth() === currentDate.getMonth();
   };
 
-  const navigateMonth = (direction) => {
+  const navigateDate = (direction) => {
     const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() + direction);
+    
+    switch (view) {
+      case 'day':
+        newDate.setDate(newDate.getDate() + direction);
+        break;
+      case 'week':
+        newDate.setDate(newDate.getDate() + (direction * 7));
+        break;
+      case 'month':
+      default:
+        newDate.setMonth(newDate.getMonth() + direction);
+        break;
+    }
+    
     setCurrentDate(newDate);
   };
 
@@ -355,8 +368,8 @@ export default function Calendar() {
         </div>
         
         <div className={styles.headerCenter}>
-          <button className={styles.navBtn} onClick={() => navigateMonth(-1)}>‹</button>
-          <button className={styles.navBtn} onClick={() => navigateMonth(1)}>›</button>
+          <button className={styles.navBtn} onClick={() => navigateDate(-1)}>‹</button>
+          <button className={styles.navBtn} onClick={() => navigateDate(1)}>›</button>
           <button className={styles.todayBtn} onClick={() => setCurrentDate(new Date())}>
             今日
           </button>
@@ -421,9 +434,9 @@ export default function Calendar() {
           
           <div className={styles.miniCalendar}>
             <div className={styles.miniCalendarHeader}>
-              <button onClick={() => navigateMonth(-1)}>‹</button>
+              <button onClick={() => navigateDate(-1)}>‹</button>
               <span>{formatDate(currentDate)}</span>
-              <button onClick={() => navigateMonth(1)}>›</button>
+              <button onClick={() => navigateDate(1)}>›</button>
             </div>
           </div>
 
