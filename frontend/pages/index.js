@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import styles from './Calendar.module.css';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000/api';
 
 export default function Calendar() {
   // 状態管理
